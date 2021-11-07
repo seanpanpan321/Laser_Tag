@@ -13,11 +13,11 @@ LED strip - GPIO - PWM  -  GPO_PB6
 
 Buzzer - GPIO - GPO_PA8
 
-Light Sensor - GPIO -   GPI_PC8
-			GPI_PC9
-			GPI_PC10
-			GPI_PC11
-			GPI_PB8
+Light Sensor - GPIO -   GPI_PC8,
+			GPI_PC9,
+			GPI_PC10,
+			GPI_PC11,
+			GPI_PB8,
 			GPI_PB9
 			
 Button - GPIO - GPI_PB14
