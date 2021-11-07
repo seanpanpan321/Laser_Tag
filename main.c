@@ -26,6 +26,7 @@
 #include "fireshot.h"
 #include "lcd.h"
 #include "ledstrip.h"
+#include "gyroscope.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -73,7 +74,7 @@ static void MX_I2C2_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+  float Ax, Ay, Az, Gx, Gy, Gz;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -98,19 +99,28 @@ int main(void)
   MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
   LCD_INIT();
+  MPU6050_Init(hi2c2);
   char buf[8];
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
-  {
+  {		
 	  uint8_t triggerPressed = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14);
 	  uint8_t target1 = (!HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_8) || !HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_9));
 	  uint8_t target2 = (!HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_10) || !HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_11));
 	  uint8_t target3 = (!HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_8) || !HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_9));
-
-
+	  
+	  //Read Data from Gyroscope
+	  //--------------------------------------------------------------------------------
+          MPU6050_Read_Gyro(hi2c2,&Gx, &Gy, &Gz);
+	  MPU6050_Read_Accel(hi2c2,&Ax, &Ay, &Az);
+	  //print_Accel_Gyro_OnLCD(&Ax, &Ay, &Az, &Gx, &Gy, &Gz);
+	  HAL_Delay(20);
+	  //--------------------------------------------------------------------------------
+	  
+	  
 	  uint8_t isDisabled = (target1 || target2 || target3);
 	  //Todo: check gyroscope
 	  uint8_t isReloading = 0;
