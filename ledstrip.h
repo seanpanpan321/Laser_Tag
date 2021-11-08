@@ -5,21 +5,15 @@
  *      Author: seanpanpan
  */
 
-#ifndef SRC_LEDSTRIP_H_
-#define SRC_LEDSTRIP_H_
-
-void targetShot(uint8_t isShot){
-
-}
-
-void bulletIndicator(uint8_t bulletCount, uint8_t isReloading){
+#ifndef __LEDSTRIP_H
+#define __LEDSTRIP_H
+#include "stm32f1xx_hal.h"
 
 
-}
+void targetShot(uint8_t isShot);
 
-void disableMode(){
-	//led red
-	HAL_Delay(3000);
-}
+void bulletIndicator(uint8_t bulletCount, uint8_t isReloading);
 
-#endif /* SRC_LEDSTRIP_H_ */
+void disableMode();
+
+#endif

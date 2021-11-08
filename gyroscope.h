@@ -1,5 +1,5 @@
-#ifndef __GYROSCOP_H
-#define	__GYROSCOP_H
+#ifndef GYROSCOPE_H
+#define	GYROSCOPE_H
 
 #include "stm32f1xx_hal.h"
 #include "lcd.h"
@@ -21,4 +21,4 @@ void MPU6050_Read_Accel (I2C_HandleTypeDef hi2c2, float* Ax, float* Ay, float* A
 void MPU6050_Read_Gyro (I2C_HandleTypeDef hi2c2, float* Gx, float* Gy, float* Gz);
 void print_Accel_Gyro_OnLCD(float* Ax, float* Ay, float* Az, float* Gx, float* Gy, float* Gz );
 
-#endif
+#endif 

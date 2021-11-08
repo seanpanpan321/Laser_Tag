@@ -114,9 +114,9 @@ int main(void)
 	  
 	  //Read Data from Gyroscope
 	  //--------------------------------------------------------------------------------
-          MPU6050_Read_Gyro(hi2c2,&Gx, &Gy, &Gz);
+      MPU6050_Read_Gyro(hi2c2,&Gx, &Gy, &Gz);
 	  MPU6050_Read_Accel(hi2c2,&Ax, &Ay, &Az);
-	  //print_Accel_Gyro_OnLCD(&Ax, &Ay, &Az, &Gx, &Gy, &Gz);
+	  print_Accel_Gyro_OnLCD(&Ax, &Ay, &Az, &Gx, &Gy, &Gz);
 	  HAL_Delay(20);
 	  //--------------------------------------------------------------------------------
 	  
@@ -127,7 +127,8 @@ int main(void)
 	  static uint8_t bulletCount = 6;
 	  static uint8_t lives = 3;
 	  sprintf(buf,"%d" ,bulletCount);
-	  LCD_DrawString(30, 30, buf);
+	  LCD_DrawString(0, 150, "bulletCount: ");
+	  LCD_DrawString(100, 150, buf);
 
 //	  if(isDisabled){
 //		  disableMode();
@@ -138,11 +139,19 @@ int main(void)
 	  fire(triggerPressed, &bulletCount);
 
 	  //is shot
-	  isShot(target1, target2, target3);
+	  //isShot(target1, target2, target3);
+
+	  //reload
+	  if(Ax >= 0.8){
+		  isReloading = 1;
+	  }
+	  if(isReloading){
+		  bulletCount = reload(bulletCount);
+	  }
 
 
 	  //display remaining lives
-	  LCD_DrawString(0, 0, "elec3300");
+	  //LCD_DrawString(0, 0, "elec3300");
 
 	  //display bullet
 	  bulletIndicator(bulletCount, isReloading);
