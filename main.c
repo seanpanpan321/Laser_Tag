@@ -101,6 +101,7 @@ int main(void)
   LCD_INIT();
   MPU6050_Init(hi2c2);
   char buf[8];
+  char buf2[8];
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -130,16 +131,19 @@ int main(void)
 	  LCD_DrawString(0, 150, "bulletCount: ");
 	  LCD_DrawString(100, 150, buf);
 
-//	  if(isDisabled){
-//		  disableMode();
-//		  continue;
-//	  }
+	  sprintf(buf2,"%d" ,isDisabled);
+	  LCD_DrawString(0, 200, "is disabled: ");
+	  LCD_DrawString(100, 200, buf2);
+	  if(isDisabled){
+		  disableMode();
+		  continue;
+	  }
 
 	  //fire
 	  fire(triggerPressed, &bulletCount);
 
 	  //is shot
-	  //isShot(target1, target2, target3);
+	  isShot(target1, target2, target3);
 
 	  //reload
 	  if(Ax >= 0.8){
