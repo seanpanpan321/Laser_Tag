@@ -2,6 +2,8 @@
 laser tag (final project)
 
 
+TODO: infrared emitting diode, infrared sensor*6, wifi(blynk)
+
 
 PIN SET
 
