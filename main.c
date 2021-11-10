@@ -72,7 +72,9 @@ static void MX_TIM3_Init(void);
 /* USER CODE BEGIN 0 */
 
 #define MAX_LED 12
+#define MAX_Bullet 6
 #define USE_BRIGHTNESS 1
+#define PI 3.14159265
 
 uint8_t datasentflag = 0;
 uint8_t LED_Data[MAX_LED][4];
@@ -85,8 +87,6 @@ void Set_LED (int LEDnum, int Red, int Green, int Blue)
 	LED_Data[LEDnum][2] = Red;
 	LED_Data[LEDnum][3] = Blue;
 }
-
-#define PI 3.14159265
 
 void Set_Brightness (int brightness)  // 0-45
 {
@@ -195,18 +195,8 @@ int main(void)
   MPU6050_Init(hi2c2);
   char buf[8];
   char buf2[8];
-  Set_LED(0, 0, 255, 0);
-  Set_LED(1, 0, 255, 0);
-  Set_LED(2, 0, 255, 0);
-  Set_LED(3, 0, 255, 0);
-  Set_LED(4, 0, 255, 0);
-  Set_LED(5, 0, 255, 0);
-  Set_LED(6, 0, 255, 0);
-  Set_LED(7, 0, 255, 0);
-  Set_LED(8, 0, 255, 0);
-  Set_LED(9, 0, 255, 0);
-  Set_LED(10, 0, 255, 0);
-  Set_LED(11, 0, 255, 0);
+  char buf3[8];
+  allGreen();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -220,7 +210,7 @@ int main(void)
 	  
 	  //Read Data from Gyroscope
 	  //--------------------------------------------------------------------------------
-          MPU6050_Read_Gyro(hi2c2,&Gx, &Gy, &Gz);
+      MPU6050_Read_Gyro(hi2c2,&Gx, &Gy, &Gz);
 	  MPU6050_Read_Accel(hi2c2,&Ax, &Ay, &Az);
 	  print_Accel_Gyro_OnLCD(&Ax, &Ay, &Az, &Gx, &Gy, &Gz);
 	  HAL_Delay(20);
@@ -246,17 +236,17 @@ int main(void)
 
 	  }
 	  */
-	  Set_Brightness(20);
-	  WS2812_Send();
-	  HAL_Delay (50);
+
+
 
 	  //--------------------------------------------------------------------------------
 	  
 	  uint8_t isDisabled = (target1 || target2 || target3);
-	  //Todo: check gyroscope
 	  uint8_t isReloading = 0;
-	  static uint8_t bulletCount = 6;
+	  static uint8_t bulletCount = MAX_Bullet;
 	  static uint8_t lives = 3;
+
+
 	  sprintf(buf,"%d" ,bulletCount);
 	  LCD_DrawString(0, 150, "bulletCount: ");
 	  LCD_DrawString(100, 150, buf);
@@ -264,9 +254,22 @@ int main(void)
 	  sprintf(buf2,"%d" ,isDisabled);
 	  LCD_DrawString(0, 200, "is disabled: ");
 	  LCD_DrawString(100, 200, buf2);
+
+	  sprintf(buf3,"%d" ,lives);
+	  LCD_DrawString(0, 250, "lives left: ");
+	  LCD_DrawString(100, 250, buf3);
+
 	  if(isDisabled){
-		  disableMode();
+		  disableMode(&lives, target1, target2, target3);
+
+		  if(lives == 0)
+			  break;
+
 		  continue;
+	  }else{
+		  allGreen();
+		  Set_Brightness(20);
+		  WS2812_Send();
 	  }
 
 	  //fire
@@ -412,7 +415,7 @@ static void MX_TIM3_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 66;
+  sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -499,13 +502,13 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pins : LightSensor1_Pin LightSensor2_Pin LightSensor3_Pin LightSensor4_Pin */
   GPIO_InitStruct.Pin = LightSensor1_Pin|LightSensor2_Pin|LightSensor3_Pin|LightSensor4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LightSensor5_Pin LightSensor6_Pin */
   GPIO_InitStruct.Pin = LightSensor5_Pin|LightSensor6_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LCD_RST_Pin */

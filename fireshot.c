@@ -7,9 +7,6 @@
 #include "fireshot.h"
 
 void fire(uint8_t triggerPressed, uint8_t *bulletCount){
-
-
-
 		  if((*bulletCount) == 0){
 			  //needs reload
 			  return;
@@ -17,6 +14,7 @@ void fire(uint8_t triggerPressed, uint8_t *bulletCount){
 
 		  if(triggerPressed){
 			  //turn on laser
+			  //TODO: change to npn transistor
 		  	  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 		  	  //turn on motor
 		  	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
@@ -61,7 +59,7 @@ uint8_t reload(uint8_t curBulletCount){
 	if(curBulletCount == 6)
 		return 6;
 
-	HAL_Delay(500);
+	HAL_Delay(750);
 	curBulletCount++;
 	return curBulletCount;
 }
