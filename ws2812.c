@@ -1,7 +1,14 @@
+/*
+ * ws2812.c
+ *
+ *  Created on: Nov 10, 2021
+ *      Author: seanpanpan
+ */
 #include "ws2812.h"
 
 #define MAX_LED 12
 #define USE_BRIGHTNESS 1
+#define PI 3.14159265
 extern TIM_HandleTypeDef htim3;
 
 uint8_t datasentflag = 0;
@@ -15,8 +22,6 @@ void Set_LED (int LEDnum, int Red, int Green, int Blue)
 	LED_Data[LEDnum][2] = Red;
 	LED_Data[LEDnum][3] = Blue;
 }
-
-#define PI 3.14159265
 
 void Set_Brightness (int brightness)  // 0-45
 {
@@ -52,7 +57,7 @@ void WS2812_Send (void)
 #else
 		color = ((LED_Data[i][1]<<16) | (LED_Data[i][2]<<8) | (LED_Data[i][3]));
 #endif
-		
+
 		for (int i=23; i>=0; i--)
 		{
 			if (color&(1<<i))
@@ -87,6 +92,7 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
 
 void Set_LED_Color(int Red, int Green, int Blue){
 	for (int i=0;i<MAX_LED; i++){
-		Set_LED (i, Red,Green, Blue);
+		Set_LED (i, Red, Green, Blue);
 	}
 }
+

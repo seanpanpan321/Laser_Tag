@@ -1,5 +1,12 @@
-#ifndef WS2812_H
-#define WS2812_H
+/*
+ * ws2812.h
+ *
+ *  Created on: Nov 10, 2021
+ *      Author: seanpanpan
+ */
+
+#ifndef SRC_WS2812_H_
+#define SRC_WS2812_H_
 
 #include "math.h"
 #include "stm32f1xx_hal.h"
@@ -12,6 +19,7 @@ void WS2812_Send (void);
 
 void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim);
 
-void Set_LED_Color(int Red, int Green, int Blue);   
+void Set_LED_Color(int Red, int Green, int Blue);
 
-#endif
+
+#endif /* SRC_WS2812_H_ */
