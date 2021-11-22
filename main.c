@@ -49,8 +49,14 @@
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c2;
 
+TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim4;
 DMA_HandleTypeDef hdma_tim3_ch1_trig;
+DMA_HandleTypeDef hdma_tim4_ch1;
+
+UART_HandleTypeDef huart5;
+UART_HandleTypeDef huart1;
 
 SRAM_HandleTypeDef hsram1;
 
@@ -65,6 +71,10 @@ static void MX_FSMC_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_DMA_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_TIM4_Init(void);
+static void MX_USART1_UART_Init(void);
+static void MX_UART5_Init(void);
+static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -72,11 +82,15 @@ static void MX_TIM3_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-#define MAX_Bullet 6
+#define MAX_Bullet 60
 #define MAX_Lives 5
 #define PI 3.14159265
 
-
+void delay_ms(int ms){
+	for(int i = 0; i < ms; i++){
+		delay_us(1000); //delay 1ms
+	}
+}
 /* USER CODE END 0 */
 
 /**
@@ -111,32 +125,62 @@ int main(void)
   MX_I2C2_Init();
   MX_DMA_Init();
   MX_TIM3_Init();
+  MX_TIM4_Init();
+  MX_USART1_UART_Init();
+  MX_UART5_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
   LCD_INIT();
   MPU6050_Init(hi2c2);
+  HAL_TIM_Base_Start(&htim1);
   char buf[8];
   char buf2[8];
   char buf3[8];
   Set_LED_Color(0, 255, 0);
+  uint8_t team = 0; //red: 0, blue:1
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  while(!HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0) && !HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13)){
+  		  LCD_DrawString(0, 0, "Please choose team!");
+  }
+  if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0)){
+	  LCD_Clear (0, 0, 240, 320, BACKGROUND);
+	  LCD_DrawString(0, 300, "You are team RED!");
+	  team = 0; //red
+  }
+  else if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13)){
+	  LCD_Clear (0, 0, 240, 320, BACKGROUND);
+	  LCD_DrawString(0, 300, "You are team BLUE!");
+	  team = 1; //blue
+  }
+
   while (1)
-  {		
+  {
+//	  counter++;
+//	  sprintf(buf,"%d" ,counter);
+//	  LCD_DrawString(0, 250, buf);
+//	  static const char dat[] = "elec3300";
+//	  HAL_UART_Transmit (&huart1, (uint8_t*)&dat, sizeof(dat), 0xFFFF);
+//	  HAL_UART_Receive(&huart1, buf, sizeof(buf), 5000);
+//	  LCD_DrawString(0, 100, buf);
+//    HAL_Delay(200);
+
+
 	  uint8_t triggerPressed = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14);
 	  uint8_t target1 = (!HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_8) || !HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_9));
 	  uint8_t target2 = (!HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_10) || !HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_11));
 	  uint8_t target3 = (!HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_8) || !HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_9));
-	  
+	  uint8_t targetIsHit = (!HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12))
 	  //Read Data from Gyroscope
 	  //--------------------------------------------------------------------------------
       MPU6050_Read_Gyro(hi2c2,&Gx, &Gy, &Gz);
 	  MPU6050_Read_Accel(hi2c2,&Ax, &Ay, &Az);
 	  print_Accel_Gyro_OnLCD(&Ax, &Ay, &Az, &Gx, &Gy, &Gz);
-	  HAL_Delay(20);
+//	  HAL_Delay(20);
 	  //--------------------------------------------------------------------------------
-	  
+
 	  //testing LED
 	  //--------------------------------------------------------------------------------
 
@@ -161,7 +205,7 @@ int main(void)
 
 
 	  //--------------------------------------------------------------------------------
-	  
+
 	  uint8_t isDisabled = (target1 || target2 || target3);
 	  uint8_t isReloading = 0;
 	  static uint8_t bulletCount = MAX_Bullet;
@@ -180,24 +224,23 @@ int main(void)
 	  LCD_DrawString(0, 250, "lives left: ");
 	  LCD_DrawString(100, 250, buf3);
 
-	  if(isDisabled){
-		  disableMode(&lives, target1, target2, target3);
-
-		  if(lives == 0)
-			  break;
-
-		  continue;
-	  }else{
-		  Set_LED_Color(0, 255, 0);
-		  Set_Brightness(20);
-		  WS2812_Send();
-	  }
+//	  if(isDisabled){
+//		  disableMode(&lives, target1, target2, target3);
+//
+//		  if(lives == 0)
+//			  break;
+//
+//		  continue;
+//	  }else{
+//		  Set_LED_Color(0, 255, 0);
+//		  Set_Brightness(20);
+//		  WS2812_Send();
+//	  }
 
 	  //fire
-	  fire(triggerPressed, &bulletCount);
-
+	  fire(triggerPressed, &bulletCount, team);
 	  //is shot
-	  isShot(target1, target2, target3);
+//	  isShot(target1, target2, target3);
 
 	  //reload
 	  if(Ax >= 0.8){
@@ -213,6 +256,7 @@ int main(void)
 
 	  //display bullet
 	  bulletIndicator(bulletCount, isReloading);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -292,6 +336,52 @@ static void MX_I2C2_Init(void)
 }
 
 /**
+  * @brief TIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM1_Init(void)
+{
+
+  /* USER CODE BEGIN TIM1_Init 0 */
+
+  /* USER CODE END TIM1_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 72-1;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 0;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
+
+  /* USER CODE END TIM1_Init 2 */
+
+}
+
+/**
   * @brief TIM3 Initialization Function
   * @param None
   * @retval None
@@ -351,6 +441,131 @@ static void MX_TIM3_Init(void)
 }
 
 /**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 0;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 89;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
+  HAL_TIM_MspPostInit(&htim4);
+
+}
+
+/**
+  * @brief UART5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_UART5_Init(void)
+{
+
+  /* USER CODE BEGIN UART5_Init 0 */
+
+  /* USER CODE END UART5_Init 0 */
+
+  /* USER CODE BEGIN UART5_Init 1 */
+
+  /* USER CODE END UART5_Init 1 */
+  huart5.Instance = UART5;
+  huart5.Init.BaudRate = 115200;
+  huart5.Init.WordLength = UART_WORDLENGTH_8B;
+  huart5.Init.StopBits = UART_STOPBITS_1;
+  huart5.Init.Parity = UART_PARITY_NONE;
+  huart5.Init.Mode = UART_MODE_TX_RX;
+  huart5.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart5.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN UART5_Init 2 */
+
+  /* USER CODE END UART5_Init 2 */
+
+}
+
+/**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -359,6 +574,9 @@ static void MX_DMA_Init(void)
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
   /* DMA1_Channel6_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
@@ -385,6 +603,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOA, LaserModule_Pin|Buzzer_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(IR_emitter_GPIO_Port, IR_emitter_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(VibrationalMotor_GPIO_Port, VibrationalMotor_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
@@ -393,6 +614,18 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LCD_RST_GPIO_Port, LCD_RST_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin : K2_Pin */
+  GPIO_InitStruct.Pin = K2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(K2_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : K1_Pin */
+  GPIO_InitStruct.Pin = K1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(K1_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pins : LaserModule_Pin Buzzer_Pin */
   GPIO_InitStruct.Pin = LaserModule_Pin|Buzzer_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -400,18 +633,24 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : IR_sensor_Pin LightSensor5_Pin LightSensor6_Pin */
+  GPIO_InitStruct.Pin = IR_sensor_Pin|LightSensor5_Pin|LightSensor6_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : IR_emitter_Pin VibrationalMotor_Pin */
+  GPIO_InitStruct.Pin = IR_emitter_Pin|VibrationalMotor_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
   /*Configure GPIO pin : Button_Pin */
   GPIO_InitStruct.Pin = Button_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(Button_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : VibrationalMotor_Pin */
-  GPIO_InitStruct.Pin = VibrationalMotor_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(VibrationalMotor_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LCD_BL_Pin */
   GPIO_InitStruct.Pin = LCD_BL_Pin;
@@ -425,12 +664,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : LightSensor5_Pin LightSensor6_Pin */
-  GPIO_InitStruct.Pin = LightSensor5_Pin|LightSensor6_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LCD_RST_Pin */
   GPIO_InitStruct.Pin = LCD_RST_Pin;
