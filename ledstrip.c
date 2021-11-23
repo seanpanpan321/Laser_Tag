@@ -15,8 +15,23 @@ void targetShot(uint8_t isShot){
 }
 
 void bulletIndicator(uint8_t bulletCount, uint8_t isReloading){
+	Set_LED_Color (0,0,0);
+	for (int i=bulletCount; i>0; i--)
+	{
+		if(i%2==0){
+			Set_LED(i*2-2, 0, 100, 0);
+			Set_LED(i*2-1, 0, 100, 0);
+		}
+		else{
+			Set_LED(i*2-2, 0, 0, 100);
+			Set_LED(i*2-1, 0, 0, 100);
+		}
+
+	}
+	Set_Brightness(3);
 
 
+	WS2812_Send_B();
 }
 
 void disableMode(uint8_t *lives, uint8_t target1, uint8_t target2, uint8_t target3){
@@ -41,5 +56,5 @@ void disableMode(uint8_t *lives, uint8_t target1, uint8_t target2, uint8_t targe
 	LCD_DrawString(0, 250, "lives left: ");
 	LCD_DrawString(100, 250, buf);
 
-	HAL_Delay(3000);
+	delay_ms(3000);
 }

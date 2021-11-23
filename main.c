@@ -83,7 +83,7 @@ static void MX_TIM1_Init(void);
 /* USER CODE BEGIN 0 */
 
 #define MAX_Bullet 60
-#define MAX_Lives 5
+#define MAX_Lives 6
 #define PI 3.14159265
 
 void delay_ms(int ms){
@@ -143,7 +143,9 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while(!HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0) && !HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13)){
-  		  LCD_DrawString(0, 0, "Please choose team!");
+  		LCD_DrawString(0, 0, "Please choose team!");
+  		LCD_DrawString(0, 15, "Press K1 for team red");
+  		LCD_DrawString(0, 30, "Press K2 for team blue");
   }
   if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0)){
 	  LCD_Clear (0, 0, 240, 320, BACKGROUND);
@@ -172,7 +174,6 @@ int main(void)
 	  uint8_t target1 = (!HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_8) || !HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_9));
 	  uint8_t target2 = (!HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_10) || !HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_11));
 	  uint8_t target3 = (!HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_8) || !HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_9));
-	  uint8_t targetIsHit = (!HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12))
 	  //Read Data from Gyroscope
 	  //--------------------------------------------------------------------------------
       MPU6050_Read_Gyro(hi2c2,&Gx, &Gy, &Gz);
@@ -249,10 +250,6 @@ int main(void)
 	  if(isReloading){
 		  bulletCount = reload(bulletCount);
 	  }
-
-
-	  //display remaining lives
-	  //LCD_DrawString(0, 0, "elec3300");
 
 	  //display bullet
 	  bulletIndicator(bulletCount, isReloading);

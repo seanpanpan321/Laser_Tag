@@ -28,11 +28,6 @@ TIM_HandleTypeDef htim1;
      SysTick->VAL=0;        //Clear counter
  }
 
-//void delay_us(uint16_t us)
-//{
-//	__HAL_TIM_SET_COUNTER(&htim1,0);  // set the counter value a 0
-//	while (__HAL_TIM_GET_COUNTER(&htim1) < us);  // wait for the counter to reach the us input in the parameter
-//}
 void sendLow(){
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
 	delay_us(12);
@@ -84,22 +79,17 @@ void fire(uint8_t triggerPressed, uint8_t *bulletCount, uint8_t team){
 			  }
 			  //turn on laser
 			  //TODO: change to npn transistor
-			  LCD_DrawString(0, 180, "before laser");
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 
 		  	  //turn on motor
 		  	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
 
-//		  	  HAL_Delay(500);
-		  	  for(int i = 0; i < 1000; i++){
-		  		  delay_us(500);
-		  	  }
+		  	  delay_ms(500);
 
 			  //turn off laser and motor
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
 			  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET);
 		  	  (*bulletCount)--;
-		  	LCD_DrawString(0, 220, "at the end");
 		  }
 }
 
@@ -135,9 +125,7 @@ uint8_t reload(uint8_t curBulletCount){
 	if(curBulletCount == 6)
 		return 6;
 
-	for(int i = 0; i < 1000; i++){
-		  delay_us(750);
-	  }
+	delay_ms(750);
 	curBulletCount++;
 	return curBulletCount;
 }
