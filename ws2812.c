@@ -81,7 +81,7 @@ void WS2812_Send (void)
 	}
 
 	HAL_TIM_PWM_Start_DMA(&htim3, TIM_CHANNEL_1, (uint32_t *)pwmData, indx);
-	HAL_Delay(1);
+	delay_ms(1);
 	while (!datasentflag){};
 	datasentflag = 0;
 }

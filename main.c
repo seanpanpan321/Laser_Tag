@@ -20,7 +20,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
+#include "string.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "fireshot.h"
@@ -29,6 +29,8 @@
 #include "gyroscope.h"
 #include "ws2812.h"
 #include "math.h"
+#include "interface.h"
+#include "IR.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,6 +49,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+
 I2C_HandleTypeDef hi2c2;
 
 TIM_HandleTypeDef htim1;
@@ -55,7 +59,6 @@ TIM_HandleTypeDef htim4;
 DMA_HandleTypeDef hdma_tim3_ch1_trig;
 DMA_HandleTypeDef hdma_tim4_ch1;
 
-UART_HandleTypeDef huart5;
 UART_HandleTypeDef huart1;
 
 SRAM_HandleTypeDef hsram1;
@@ -73,8 +76,8 @@ static void MX_DMA_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_UART5_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -82,7 +85,7 @@ static void MX_TIM1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-#define MAX_Bullet 60
+#define MAX_Bullet 6
 #define MAX_Lives 6
 #define PI 3.14159265
 
@@ -127,17 +130,21 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM4_Init();
   MX_USART1_UART_Init();
-  MX_UART5_Init();
   MX_TIM1_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
+  //----------------------------------------
+  LCD_INIT();
+  HAL_ADCEx_Calibration_Start(&hadc1);
+  //------------------------------------------
   LCD_INIT();
   MPU6050_Init(hi2c2);
   HAL_TIM_Base_Start(&htim1);
-  char buf[8];
-  char buf2[8];
-  char buf3[8];
   Set_LED_Color(0, 255, 0);
   uint8_t team = 0; //red: 0, blue:1
+  uint16_t counter = 0;
+  uint8_t redIsShot = 0;
+  uint8_t blueIsShot = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -149,110 +156,196 @@ int main(void)
   }
   if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0)){
 	  LCD_Clear (0, 0, 240, 320, BACKGROUND);
-	  LCD_DrawString(0, 300, "You are team RED!");
+//	  LCD_DrawString(0, 300, "You are team RED!");
 	  team = 0; //red
   }
   else if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13)){
 	  LCD_Clear (0, 0, 240, 320, BACKGROUND);
-	  LCD_DrawString(0, 300, "You are team BLUE!");
+//	  LCD_DrawString(0, 300, "You are team BLUE!");
 	  team = 1; //blue
   }
 
+  char red[32] = "RED Lives: ";
+      char redlives[2];
+      sprintf(redlives, "%d", MAX_Lives);
+      strcat(red, redlives);
+      char blue[20] = "    BLUE Lives: ";
+      char bluelives[6];
+      sprintf(bluelives, "%d \r\n", MAX_Lives);
+      strcat(blue, bluelives);
+      strcat(red, blue);
+
+      if(team ==0){
+      	char start[20] = "You are team RED! \r\n";
+      	HAL_UART_Transmit (&huart1, (uint8_t*)&start, sizeof(start), 100);
+      }
+      else if(team == 1){
+      	char start[21] = "You are team BLUE! \r\n";
+      	HAL_UART_Transmit (&huart1, (uint8_t*)&start, sizeof(start), 100);
+      }
+
+      HAL_UART_Transmit (&huart1, (uint8_t*)&red, sizeof(red), 100);
+
+
+  display(team, MAX_Lives);
   while (1)
   {
-//	  counter++;
-//	  sprintf(buf,"%d" ,counter);
-//	  LCD_DrawString(0, 250, buf);
-//	  static const char dat[] = "elec3300";
-//	  HAL_UART_Transmit (&huart1, (uint8_t*)&dat, sizeof(dat), 0xFFFF);
-//	  HAL_UART_Receive(&huart1, buf, sizeof(buf), 5000);
-//	  LCD_DrawString(0, 100, buf);
-//    HAL_Delay(200);
+	  //variable resistor, control the charged shot
+	  //-----------------------------------------------------------------------------------------
+	  HAL_ADC_Start(&hadc1);
+	  HAL_ADC_PollForConversion(&hadc1,1000);
+	  uint16_t result= HAL_ADC_GetValue(&hadc1);
 
+	  uint8_t charge = 0;
+	  if (result < 575 )
+		  charge = 1;
+	  else if (575 <= result && result < 1150)
+		  charge = 2;
+	  else if (1150 <= result && result < 1725)
+		  charge = 3;
+	  else if (1725 <= result && result < 2300)
+		  charge = 4;
+	  else if (2300 <= result && result < 2875)
+		  charge = 5;
+	  else if (2875 < result)
+		  charge = 6;
+	  //-----------------------------------------------------------------------------------------------
 
 	  uint8_t triggerPressed = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14);
-	  uint8_t target1 = (!HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_8) || !HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_9));
-	  uint8_t target2 = (!HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_10) || !HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_11));
-	  uint8_t target3 = (!HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_8) || !HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_9));
+	  uint8_t needUpdate = 0;
+
 	  //Read Data from Gyroscope
 	  //--------------------------------------------------------------------------------
-      MPU6050_Read_Gyro(hi2c2,&Gx, &Gy, &Gz);
+	  MPU6050_Read_Gyro(hi2c2,&Gx, &Gy, &Gz);
 	  MPU6050_Read_Accel(hi2c2,&Ax, &Ay, &Az);
-	  print_Accel_Gyro_OnLCD(&Ax, &Ay, &Az, &Gx, &Gy, &Gz);
-//	  HAL_Delay(20);
-	  //--------------------------------------------------------------------------------
-
-	  //testing LED
-	  //--------------------------------------------------------------------------------
-
-	  /*
-		for (int i=0; i<46; i++)
-	  {
-		  Set_Brightness(i);
-		  WS2812_Send();
-		  HAL_Delay (50);
-	  }
-
-
-	  for (int i=45; i>=0; i--)
-	  {
-		  Set_Brightness(i);
-		  WS2812_Send();
-		  HAL_Delay (50);
-
-	  }
-	  */
-
-
+//	  print_Accel_Gyro_OnLCD(&Ax, &Ay, &Az, &Gx, &Gy, &Gz);
 
 	  //--------------------------------------------------------------------------------
 
-	  uint8_t isDisabled = (target1 || target2 || target3);
-	  uint8_t isReloading = 0;
-	  static uint8_t bulletCount = MAX_Bullet;
-	  static uint8_t lives = MAX_Lives;
+	uint8_t isDisabled = 0;
+	uint8_t isReloading = 0;
+	static uint8_t bulletCount = MAX_Bullet;
+	static uint8_t lives = MAX_Lives;
+
+	//reload
+	if(Ax >= 0.8){
+		isReloading = 1;
+	}
+	if(isReloading){
+		bulletCount = reload(bulletCount);
+	}
+
+	//fire
+	fire(triggerPressed, &bulletCount, team, charge);
+
+	//display bullet
+	bulletIndicator(bulletCount, isReloading, charge);
 
 
-	  sprintf(buf,"%d" ,bulletCount);
-	  LCD_DrawString(0, 150, "bulletCount: ");
-	  LCD_DrawString(100, 150, buf);
+  //------------------------------------------------------------
+		if (!HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12)){
+				//ignoring the small pulse within 12us
+				do{
+					counter = 0;
+					counter = countHighTime();
+					if (counter > 5000)
+						break;
+//				sprintf(buf2, "%d", counter);
+//				if (counter < 1000)
+//					buf2[3] = '\0';
+//				if (counter < 100)
+//					buf2[2] = '\0';
+//				LCD_DrawString(0,80 ,buf2);
+				}while(counter <80);
 
-	  sprintf(buf2,"%d" ,isDisabled);
-	  LCD_DrawString(0, 200, "is disabled: ");
-	  LCD_DrawString(100, 200, buf2);
+				//sprintf(buf, "%d", counter);
+				//LCD_DrawString(20,3*HEIGHT_EN_CHAR+HEIGHT_EN_CHAR*i ,buf);
 
-	  sprintf(buf3,"%d" ,lives);
-	  LCD_DrawString(0, 250, "lives left: ");
-	  LCD_DrawString(100, 250, buf3);
+				// HighTime [300,900]   ->   0
+				if (counter > 100 && counter < 400){
+					redIsShot = 1;
+					blueIsShot = 0;
+					continue;
+				}
+				else if (counter > 600 && counter < 1000){
+					blueIsShot = 1;
+					redIsShot = 0;
+					continue;
+				}
 
-//	  if(isDisabled){
-//		  disableMode(&lives, target1, target2, target3);
-//
-//		  if(lives == 0)
-//			  break;
-//
-//		  continue;
-//	  }else{
-//		  Set_LED_Color(0, 255, 0);
-//		  Set_Brightness(20);
-//		  WS2812_Send();
-//	  }
 
-	  //fire
-	  fire(triggerPressed, &bulletCount, team);
-	  //is shot
-//	  isShot(target1, target2, target3);
+		}
 
-	  //reload
-	  if(Ax >= 0.8){
-		  isReloading = 1;
-	  }
-	  if(isReloading){
-		  bulletCount = reload(bulletCount);
-	  }
+		if(redIsShot && team == 1){
+			//LCD_DrawString(0,0,"shot by red");
+			isDisabled = 1;
+			needUpdate = 1;
+			redIsShot =0;
+			delay_ms(1000);
+		}
+		else if(blueIsShot && team == 0){
+			//LCD_DrawString(0,0,"shot by blue");
+			isDisabled = 1;
+			needUpdate = 1;
+			blueIsShot =0;
+			delay_ms(1000);
+		}
 
-	  //display bullet
-	  bulletIndicator(bulletCount, isReloading);
+	   //---------------------------------------------------------------------------------
+	if(isDisabled){
+		disableMode(&lives);
+		if(lives == 0)
+			break;
+	}else{
+		if (team == 0){
+			Set_LED_Color(100, 0, 0);
+			Set_Brightness(5);
+			WS2812_Send();
+		}
+		else if (team == 1){
+			Set_LED_Color(0, 0, 100);
+			Set_Brightness(5);
+		    WS2812_Send();
+		}
+	}
+
+	redIsShot = 0;
+	blueIsShot = 0;
+
+if(needUpdate == 1){
+	display(team, lives);
+
+	if(team == 0){
+		char redN[32] = "RED Lives: ";
+		char redlivesN[2];
+		sprintf(redlivesN, "%d", lives);
+		strcat(redN, redlivesN);
+		char blueN[20] = "    BLUE Lives: ";
+		char bluelivesN[6];
+		sprintf(bluelivesN, "%d \r\n", MAX_Lives);
+		strcat(blueN, bluelivesN);
+		strcat(redN, blueN);
+
+		HAL_UART_Transmit (&huart1, (uint8_t*)&redN, sizeof(redN), 100);
+	}
+	else if(team == 1){
+		char redN[32] = "RED Lives: ";
+		char redlivesN[2];
+		sprintf(redlivesN, "%d", MAX_Lives);
+		strcat(redN, redlivesN);
+		char blueN[20] = "    BLUE Lives: ";
+		char bluelivesN[6];
+		sprintf(bluelivesN, "%d \r\n", lives);
+		strcat(blueN, bluelivesN);
+		strcat(redN, blueN);
+
+		HAL_UART_Transmit (&huart1, (uint8_t*)&redN, sizeof(redN), 100);
+	}
+
+
+}
+
+	//------------------------------------------
 
     /* USER CODE END WHILE */
 
@@ -269,6 +362,7 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Initializes the CPU, AHB and APB busses clocks
   */
@@ -296,6 +390,57 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
+  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+  /** Common config
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_7;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_55CYCLES_5;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -489,43 +634,14 @@ static void MX_TIM4_Init(void)
   {
     Error_Handler();
   }
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE BEGIN TIM4_Init 2 */
 
   /* USER CODE END TIM4_Init 2 */
   HAL_TIM_MspPostInit(&htim4);
-
-}
-
-/**
-  * @brief UART5 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_UART5_Init(void)
-{
-
-  /* USER CODE BEGIN UART5_Init 0 */
-
-  /* USER CODE END UART5_Init 0 */
-
-  /* USER CODE BEGIN UART5_Init 1 */
-
-  /* USER CODE END UART5_Init 1 */
-  huart5.Instance = UART5;
-  huart5.Init.BaudRate = 115200;
-  huart5.Init.WordLength = UART_WORDLENGTH_8B;
-  huart5.Init.StopBits = UART_STOPBITS_1;
-  huart5.Init.Parity = UART_PARITY_NONE;
-  huart5.Init.Mode = UART_MODE_TX_RX;
-  huart5.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart5.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart5) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN UART5_Init 2 */
-
-  /* USER CODE END UART5_Init 2 */
 
 }
 

@@ -13,21 +13,6 @@ TIM_HandleTypeDef htim1;
  * Input: i
  * Output: None
  ***************************/
- void delay_us(uint32_t i)
-  {
-      uint32_t temp;
-     SysTick->LOAD=9*i;         //Set the reinstallation value, at 72MHZ
-     SysTick->CTRL=0X01;         //Enable, reduce to zero is no action, use external clock source
-     SysTick->VAL=0;                //Clear counter
-     do
-     {
-         temp=SysTick->CTRL;           //Read the current countdown value
-     }
-     while((temp&0x01)&&(!(temp&(1<<16))));     //Waiting time arrives
-     SysTick->CTRL=0;    //Turn off the counter
-     SysTick->VAL=0;        //Clear counter
- }
-
 void sendLow(){
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
 	delay_us(12);
@@ -48,34 +33,35 @@ void burst(int length){
 }
 
 void sendZero(){
-	burst(500);
-	delay_us(500);
-	burst(500);
+	burst(1500);
+	delay_us(1000);
+	burst(1500);
 }
 
 void sendOne(){
-	burst(500);
-	delay_us(1500);
-	burst(500);
+	burst(1500);
+	delay_us(3000);
+	burst(1500);
 }
 
-void fire(uint8_t triggerPressed, uint8_t *bulletCount, uint8_t team){
+void fire(uint8_t triggerPressed, uint8_t *bulletCount, uint8_t team, uint8_t charge){
 		  if((*bulletCount) == 0){
 			  //needs reload
 			  return;
 		  }
 
 		  if(triggerPressed){
+			  for(int i = 0; i<charge;i++){
 			  //bullet to shoot depends on which team the player is on
 			  if(team == 0){
-				  sendZero();
-				  sendZero();
-				  sendZero();
+				  for (int i=0;i<30;i++){
+					  sendZero();
+				  }
 			  }
 			  else if(team == 1){
-				  sendOne();
-				  sendOne();
-				  sendOne();
+				  for (int i=0;i<30;i++){
+					  sendOne();
+				  }
 			  }
 			  //turn on laser
 			  //TODO: change to npn transistor
@@ -84,42 +70,17 @@ void fire(uint8_t triggerPressed, uint8_t *bulletCount, uint8_t team){
 		  	  //turn on motor
 		  	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
 
-		  	  delay_ms(500);
+		  	  delay_ms(400);
 
 			  //turn off laser and motor
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
 			  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET);
 		  	  (*bulletCount)--;
+		  	 delay_ms(100);
+		  }
 		  }
 }
 
-void isShot(uint8_t target1, uint8_t target2, uint8_t target3){
-		  //is shot
-		  if(target1 || target2 || target3){
-			  //target x is shot
-			  if(target1){
-				  //led strip is red and turns back to green
-			  }
-			  else if(target2){
-
-			  }
-			  else if(target3){
-
-			  }
-
-			  //gun is disabled
-
-			  //turn on buzzer
-			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
-		  }
-		  //is not shot
-		  else{
-			  //led strip is green
-
-			  //turn off buzzer
-			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
-		  }
-}
 
 uint8_t reload(uint8_t curBulletCount){
 	if(curBulletCount == 6)

@@ -431,9 +431,24 @@ void LCD_DrawString ( uint16_t usC, uint16_t usP, const char * pStr )
 //Task 2
 void LCD_DrawDot(uint16_t usCOLUMN, uint16_t usPAGE, uint16_t usColor)	
 {	
-	/*
-	 *  Task 2 : Implement the LCD_DrawDot to turn on a particular dot on the LCD.
-	 */
+	//Open Window
+			// 1) set the column address y- aix
+		  LCD_Write_Cmd(0x2A);
+			LCD_Write_Data(usCOLUMN>>8); //e.g. 4>>8 = 0x0004 (0000 0000 0000 0100) >> 8 = 0x0000 (0000 0000 {0000 0100})
+			LCD_Write_Data(usCOLUMN & 0xff); // extrate the lower 8 bits of usC
+			LCD_Write_Data((usCOLUMN+1)>>8);
+			LCD_Write_Data(usCOLUMN+1 & 0xff);
+
+			// 2) set the page address x- aix
+			LCD_Write_Cmd(0x2B);
+			LCD_Write_Data(usPAGE>>8);
+			LCD_Write_Data(usPAGE & 0xff);
+			LCD_Write_Data((usPAGE+1)>>8);
+			LCD_Write_Data(usPAGE+1 & 0xff);
+
+			// 3) fill the color
+			LCD_Write_Cmd(0x2C);
+			LCD_Write_Data(usColor);
 
 
 		
