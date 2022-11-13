@@ -45,38 +45,30 @@ void sendOne(){
 }
 
 void fire(uint8_t triggerPressed, uint8_t *bulletCount, uint8_t team, uint8_t charge){
-		  if((*bulletCount) == 0){
-			  //needs reload
+		  if((*bulletCount) == 0)//needs reload
 			  return;
-		  }
 
 		  if(triggerPressed){
 			  for(int i = 0; i<charge;i++){
 			  //bullet to shoot depends on which team the player is on
 			  if(team == 0){
-				  for (int i=0;i<30;i++){
+				  for (int i=0;i<30;i++)
 					  sendZero();
-				  }
 			  }
 			  else if(team == 1){
-				  for (int i=0;i<30;i++){
+				  for (int i=0;i<30;i++)
 					  sendOne();
-				  }
 			  }
 			  //turn on laser
-			  //TODO: change to npn transistor
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
-
 		  	  //turn on motor
 		  	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
-
 		  	  delay_ms(400);
-
 			  //turn off laser and motor
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
 			  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET);
 		  	  (*bulletCount)--;
-		  	 delay_ms(100);
+		  	  delay_ms(100);
 		  }
 		  }
 }
