@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project implements a recreational laser tag system that allows players to engage in a simulated shooting game. The system includes features such as shooting detection, score tracking, and real-time feedback to enhance the gaming experience.
+This project implements a recreational laser tag system that allows players to engage in a simulated shooting game. The system includes features such as shooting detection, score tracking, and real-time feedback to enhance the gaming experience. Check out the [demo video](https://www.youtube.com/watch?v=3bv4x8FTByI).
 
 ## Features
 
@@ -70,8 +70,3 @@ This project implements a recreational laser tag system that allows players to e
 We implemented our own basic IR protocol and decoding functions, so players on different teams shoot out different IR waveforms, solving "friendly firing" issues.
 <img width="867" alt="Infrared Protocol" src="https://github.com/seanpanpan321/Laser_Tag/assets/89929031/401b59c7-64f0-4e4e-acca-bc59a32849a7">
 
-
-
-## Project Demo
-
-Check out the [demo video](https://www.youtube.com/watch?v=3bv4x8FTByI)
